@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="fgeoconv" default="jar" basedir=".">
+
+	<target name="jar" description="Create the jar file.">
+		<delete file="./conv_test.jar" />
+		<delete file="./conv_test1.jar" />
+		<jar destfile="./conv_test.jar">
+			<fileset dir="./bin" />
+		</jar>
+
+		<taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="./test/yguard.jar" />
+		<yguard>
+			<inoutpair in="./conv_test.jar" out="./conv_test1.jar" />
+			<shrink logfile="./renamelog.xml">
+				<adjust replaceContent="true">
+					<include name="**/*" />
+				</adjust>
+				<adjust replaceName="true">
+					<include name="**/*" />
+				</adjust>
+				<adjust replacePath="true">
+					<include name="**/*" />
+				</adjust>
+			</shrink>
+
+			<rename mainclass="conv.Starter" logfile="./renamelog.xml">
+				<adjust replaceContent="true">
+					<include name="**/*" />
+				</adjust>
+				<adjust replaceName="true">
+					<include name="**/*" />
+				</adjust>
+
+				<adjust replacePath="true">
+					<include name="**/*" />
+				</adjust>
+				<!--<keep>
+								<class classes="public" methods="public" fields="public">
+									<patternset>
+										<include name="conv.**" />
+									</patternset>
+								</class>
+								<class classes="protected" methods="protected" fields="protected">
+									<patternset>
+										<include name="conv.**" />
+									</patternset>
+								</class>
+
+								<class classes="private" methods="private" fields="private">
+									<patternset>
+										<include name="conv.**" />
+									</patternset>
+								</class>
+							</keep>-->
+			</rename>
+		</yguard>
+	</target>
+</project>
