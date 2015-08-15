@@ -1,58 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project name="fgeoconv" default="jar" basedir=".">
+<project name="fgeodata_converter" default="jar" basedir=".">
+	<property name="output" location="./output" />
 
 	<target name="jar" description="Create the jar file.">
-		<delete file="./conv_test.jar" />
-		<delete file="./conv_test1.jar" />
-		<jar destfile="./conv_test.jar">
-			<fileset dir="./bin" />
+		<delete dir="${output}/classes" quiet="true" />
+		<mkdir dir="${output}/classes" />
+
+		<path id="libs">
+			<fileset dir="lib">
+				<include name="*.jar" />
+			</fileset>
+		</path>
+
+		<javac srcdir="src" destdir="${output}/classes" encoding="UTF-8" nowarn="on" optimize="on" debug="on" source="1.8" target="1.8">
+			<classpath>
+				<path refid="libs" />
+			</classpath>
+		</javac>
+
+		<jar destfile="${output}/conv.jar">
+			<fileset dir="${output}/classes" />
 		</jar>
-
-		<taskdef name="yguard" classname="com.yworks.yguard.YGuardTask" classpath="./test/yguard.jar" />
-		<yguard>
-			<inoutpair in="./conv_test.jar" out="./conv_test1.jar" />
-			<shrink logfile="./renamelog.xml">
-				<adjust replaceContent="true">
-					<include name="**/*" />
-				</adjust>
-				<adjust replaceName="true">
-					<include name="**/*" />
-				</adjust>
-				<adjust replacePath="true">
-					<include name="**/*" />
-				</adjust>
-			</shrink>
-
-			<rename mainclass="conv.Starter" logfile="./renamelog.xml">
-				<adjust replaceContent="true">
-					<include name="**/*" />
-				</adjust>
-				<adjust replaceName="true">
-					<include name="**/*" />
-				</adjust>
-
-				<adjust replacePath="true">
-					<include name="**/*" />
-				</adjust>
-				<!--<keep>
-								<class classes="public" methods="public" fields="public">
-									<patternset>
-										<include name="conv.**" />
-									</patternset>
-								</class>
-								<class classes="protected" methods="protected" fields="protected">
-									<patternset>
-										<include name="conv.**" />
-									</patternset>
-								</class>
-
-								<class classes="private" methods="private" fields="private">
-									<patternset>
-										<include name="conv.**" />
-									</patternset>
-								</class>
-							</keep>-->
-			</rename>
-		</yguard>
 	</target>
 </project>

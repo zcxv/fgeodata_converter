@@ -1,1 +1,1 @@
-java -cp conv.jar -f input -o output
+java -cp ./lib/*:./conv.jar -f input -o output
