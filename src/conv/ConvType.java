@@ -5,8 +5,8 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 /**
- * 
  * @author PointerRage
+ * 
  */
 public enum ConvType {
 	L2j { //to pts
@@ -18,87 +18,60 @@ public enum ConvType {
 			return regx + "_" + regy + "_conv.dat";
 		}
 		
-		/*
-		 * l2j:
-		 * b - block type
-		 * FLAT - 0 {
-		 * 	s - height
-		 * }
-		 * COMPLEX 1 {
-		 * 	x64 s - height (64 cells)
-		 * }
-		 * MULTILEVEL 2 {
-		 * 	x64 {
-		 * 		b - layers count
-		 * 		x b {
-		 * 			s - height
-		 * 		}
-		 * 	}
-		 * }
-		 * 
-		 * pts:
-		 * x18 b - header
-		 * s - block type
-		 * FLAT 0 {
-		 * 	s - height
-		 * 	s - height2
-		 * }
-		 * COMPLEX 4 {
-		 * 	x64 s - height
-		 * }
-		 * MULTILEVEL 48 {
-		 * 	s - layers count
-		 * 	x s {
-		 * 		s - height
-		 * 	}
-		 * }
-		 */
 		public ByteBuffer convGeo(ByteBuffer original, int x, int y) {
 			ByteBuffer buffer = ByteBuffer.allocate(original.capacity() * 3);
 			buffer.order(ByteOrder.LITTLE_ENDIAN);
 			buffer.position(18);
-			int ccount = 0;
+			int cellCount = 0;
+			int simpleBlocks = 0;
+			int flatCount = 0;
 			for(int i = 0; i < 65536; i++) {
 				byte t = original.get();
-				if(t == 0x00)
+				if(t == 0x00) {
 					buffer.putShort((short) 0x00);
-				else if(t == 0x01) {
+					flatCount++;
+					simpleBlocks++;
+				} else if(t == 0x01) {
 					buffer.putShort((short) 0x0040);
-					ccount += 64;
-				} else 
-					buffer.putShort((short) 0x0048);
+					cellCount += 64;
+					simpleBlocks++;
+				}
 				
 				if(t == 0x00) {
 					short val = original.getShort();
 					buffer.putShort(val); //max height
 					buffer.putShort(val); //min height
 				} else if(t == 0x01) {
-					for(int j = 0; j < 64; j++)
+					for(int j = 0; j < 64; j++) {
 						buffer.putShort(original.getShort());
+					}
 				} else {
+					int cells = 0;
+					int countPos = buffer.position();
+					buffer.position(countPos + 2);
 					for(int j = 0; j < 64; j++) {
 						byte layers = original.get();
-						ccount += layers;
+						cells += layers;
+						cellCount += layers;
 						buffer.putShort(layers);
-						for(int l = 0; l < layers; l++)
+						for(int l = 0; l < layers; l++) {
 							buffer.putShort(original.getShort());
+						}
 					}
+					
+					buffer.putShort(countPos, (short)cells);
 				}
 			}
 			buffer.flip();
 			
 			buffer.put((byte)x);
 			buffer.put((byte)y);
-			buffer.put((byte)0x80); //const
-			buffer.put((byte)0x00);
-			buffer.put((byte)0x02); //unk
-			buffer.put((byte)0x00); //in ??? - 10 00
-			buffer.putInt(ccount);
-			/* 02 00 1f e0 8f db 02 00 - 12_26 etheria
-			 * 02 00 9b e0 6f db 02 00 - 15_26 etheria
-			 * e5 ff 00 00 5e ff 00 00 - 15_20 ???
-			 * f9 f0 00 00 13 87 00 00 - 17_21 ???
-			 */
+			buffer.putShort((short)0x80);
+			buffer.putShort((short)0x10);
+			buffer.putInt(cellCount);
+			buffer.putInt(simpleBlocks);
+			buffer.putInt(flatCount);
+			
 			buffer.position(0);
 			return buffer;
 		}
@@ -144,20 +117,70 @@ public enum ConvType {
 			return buffer;
 		}
 	}, 
-	NONE {
-		@Override
+	REPAIR { //repair dat
 		public boolean isSupport(File f) {
-			return false;
+			return f.getName().endsWith("_conv.dat");
 		}
-
-		@Override
+		
 		public String getFileName(int regx, int regy) {
-			return null;
+			return regx + "_" + regy + "_conv.dat";
 		}
-
-		@Override
+		
 		public ByteBuffer convGeo(ByteBuffer original, int x, int y) {
-			return null;
+			ByteBuffer buffer = ByteBuffer.allocate(original.capacity());
+			buffer.order(ByteOrder.LITTLE_ENDIAN);
+			buffer.position(18);
+			
+			int cellCount = 0, simpleBlocks = 0, flatCount = 0;
+			
+			original.position(18); //skip original header
+			for(int i = 0; i < 65536; i++) {
+				short t = original.getShort();
+				if(t == 0x00) {
+					buffer.putShort(t);
+					flatCount++;
+					simpleBlocks++;
+				} else if(t == 0x40) {
+					buffer.putShort(t);
+					cellCount += 64;
+					simpleBlocks++;
+				}
+				
+				if(t == 0x00) {
+					buffer.putShort(original.getShort());
+					buffer.putShort(original.getShort());
+				} else if(t == 0x40) {
+					for(int j = 0; j < 64; j++) {
+						buffer.putShort(original.getShort());
+					}
+				} else {
+					int cells = 0, countPos = buffer.position();
+					buffer.position(countPos + 2);
+					for(int j = 0; j < 64; j++) {
+						short layers = original.getShort();
+						cells += layers;
+						cellCount += layers;
+						buffer.putShort(layers);
+						for(int l = 0; l < layers; l++) {
+							buffer.putShort(original.getShort());
+						}
+					}
+					
+					buffer.putShort(countPos, (short)cells);
+				}
+			}
+			buffer.flip();
+			
+			buffer.put((byte)x);
+			buffer.put((byte)y);
+			buffer.putShort((short)0x80);
+			buffer.putShort((short)0x10);
+			buffer.putInt(cellCount);
+			buffer.putInt(simpleBlocks);
+			buffer.putInt(flatCount);
+			
+			buffer.position(0);
+			return buffer;
 		}
 	};
 	

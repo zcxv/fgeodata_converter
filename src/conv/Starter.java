@@ -12,8 +12,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /**
- * 
  * @author PointerRage
+ * 
  */
 public class Starter {
 	private final static Logger log = LoggerFactory.getLogger(Starter.class);
@@ -21,6 +21,7 @@ public class Starter {
 	public static void main(String[] args) {
 		File folder = null;
 		File output = null;
+		boolean repair = false;
 		
 		for(int i = 0; i < args.length; i++) {
 			if(args[i].equals("-f") || args[i].equals("-folder")) {
@@ -37,6 +38,8 @@ public class Starter {
 				}
 				
 				output = new File(args[i]);
+			} else if(args[i].equals("-repair")) {
+				repair = true;
 			}
 		}
 		
@@ -55,8 +58,19 @@ public class Starter {
 	 
 		log.info("Processing...");
 		for(File f : folder.listFiles()) {
-			final ConvType t = ConvType.L2j.isSupport(f) ? ConvType.L2j : ConvType.Dat.isSupport(f) ? ConvType.Dat : null;
-			if(t == null) continue;
+			final ConvType t = 
+				repair ? 
+					ConvType.Dat.isSupport(f) ? ConvType.REPAIR 
+					: null 
+				: ConvType.L2j.isSupport(f) ? 
+					ConvType.L2j : 
+					ConvType.Dat.isSupport(f) ? 
+						ConvType.Dat : 
+						null;
+			
+			if(t == null) { 
+				continue;
+			}
 			
 			log.info("{} - {}", f, t.name());
 			int regx = Integer.parseInt(f.getName().substring(0, 2)),
